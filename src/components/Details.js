@@ -1,78 +1,97 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import styled from 'styled-components'
-import db from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import styled from 'styled-components';
+import db from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 
-
-
 export const Details = () => {
+  const { id } = useParams(); // Get the movie ID from route params
+  const [detailData, setDetailData] = useState(null); // Initialize with null for better type handling
+  const [loading, setLoading] = useState(true); // Add loading state to improve UX
 
-    const { id } = useParams()
-    const [detailData, setDetailData] = useState({});
+  useEffect(() => {
+    const fetchMovieDetails = async () => {
+      try {
+        if (!id) return; // Ensure `id` exists before making a call
+        const colRef = doc(db, 'movies', id);
+        const docSnap = await getDoc(colRef);
 
-     useEffect(()=> {
-        const colRef = doc(db, 'movies', id)
+        if (docSnap.exists()) {
+          setDetailData(docSnap.data());
+        } else {
+          console.error('No such document!');
+        }
+      } catch (error) {
+        console.error('Error fetching movie details:', error);
+      } finally {
+        setLoading(false); // Stop loading once the operation is complete
+      }
+    };
 
+    fetchMovieDetails();
+  }, [id]);
 
-        getDoc(colRef)
-        .then((docSnap)=> {
-            if (docSnap.exists()) {
-                console.log("Document data:", docSnap.data());
-                setDetailData(docSnap.data());
-              } else {
-                // doc.data() will be undefined in this case
-                console.log("No such document!");
-              }
-        })
+  if (loading) {
+    return <LoadingMessage>Loading...</LoadingMessage>; // Display a loading message while fetching data
+  }
 
-     },[id])
+  if (!detailData) {
+    return <ErrorMessage>Movie details not found!</ErrorMessage>; // Handle case where no data is found
+  }
 
   return (
     <Container>
-        <Background>
+      {/* Background Image */}
+      <Background>
         <img alt={detailData.title} src={detailData.backgroundImg} />
-        </Background>   
+      </Background>
 
-        <ImageTitle>
-            <img src=""
-            alt="" />
-        </ImageTitle>  
-        <ContentMeta>
-            <Controls>
-            <Link to={`/video`}>
+      {/* Title Image */}
+      <ImageTitle>
+        <img alt={detailData.title} src={detailData.titleImg} />
+      </ImageTitle>
+
+      {/* Content Section */}
+      <ContentMeta>
+        {/* Controls */}
+        <Controls>
+          <Link to={`/video`}>
             <Player>
-            <img alt={detailData.title} src={detailData.titleImg} />
-            <span>Play</span>
-          </Player>
-              </Link>
-              <Link to={`/video`}>
-          <Trailer>
-            <img src="/images/play-icon-white.png" alt="" />
-            <span>Trailer</span>
-          </Trailer>
-              </Link>
+              <img alt="Play Icon" src="/images/play-icon-black.png" />
+              <span>Play</span>
+            </Player>
+          </Link>
+          <Link to={`/video`}>
+            <Trailer>
+              <img alt="Trailer Icon" src="/images/play-icon-white.png" />
+              <span>Trailer</span>
+            </Trailer>
+          </Link>
           <AddList>
             <span />
             <span />
-          </AddList>  
+          </AddList>
           <GroupWatch>
             <div>
-              <img src="/images/group-icon.png" alt="" />
+              <img alt="Group Watch Icon" src="/images/group-icon.png" />
             </div>
-          </GroupWatch> 
-            </Controls>
-            <SubTitle>{detailData.subTitle}</SubTitle>
+          </GroupWatch>
+        </Controls>
+
+        {/* Subtitle and Description */}
+        <SubTitle>{detailData.subTitle}</SubTitle>
         <Description>{detailData.description}</Description>
-        </ContentMeta>       
+      </ContentMeta>
     </Container>
-  )
-}
+  );
+};
+
+// Styled Components
 
 const Container = styled.div`
   position: relative;
-  min-height: calc(100vh-250px);
+  min-height: calc(100vh - 250px);
   overflow-x: hidden;
   display: block;
   top: 72px;
@@ -80,17 +99,19 @@ const Container = styled.div`
 `;
 
 const Background = styled.div`
-  left: 0px;
+  left: 0;
   opacity: 0.8;
   position: fixed;
-  right: 0px;
-  top: 0px;
+  right: 0;
+  top: 0;
   z-index: -1;
+
   img {
     width: 100vw;
     height: 100vh;
+
     @media (max-width: 768px) {
-      width: initial;
+      width: auto;
     }
   }
 `;
@@ -98,17 +119,17 @@ const Background = styled.div`
 const ImageTitle = styled.div`
   align-items: flex-end;
   display: flex;
-  -webkit-box-pack: start;
   justify-content: flex-start;
-  margin: 0px auto;
+  margin: auto;
   height: 30vw;
   min-height: 170px;
   padding-bottom: 24px;
-  width: 100%;
+
   img {
     max-width: 600px;
     min-width: 200px;
     width: 35vw;
+    object-fit: contain; /* Ensures proper image scaling */
   }
 `;
 
@@ -120,13 +141,12 @@ const Controls = styled.div`
   align-items: center;
   display: flex;
   flex-flow: row nowrap;
-  margin: 24px 0px;
-  min-height: 56px;
+  margin: 24px 0;
 `;
 
 const Player = styled.button`
   font-size: 15px;
-  margin: 0px 22px 0px 0px;
+  margin-right: 22px;
   padding: 0px 24px;
   height: 56px;
   border-radius: 4px;
@@ -134,97 +154,6 @@ const Player = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: 1.8px;
-  text-align: center;
-  text-transform: uppercase;
-  background: rgb (249, 249, 249);
-  border: none;
-  color: rgb(0, 0, 0);
-  img {
-    width: 32px;
-  }
-  &:hover {
-    background: rgb(198, 198, 198);
-  }
-  @media (max-width: 768px) {
-    height: 45px;
-    padding: 0px 12px;
-    font-size: 12px;
-    margin: 0px 10px 0px 0px;
-    img {
-      width: 25px;
-    }
-  }
-`;
-
-const Trailer = styled(Player)`
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgb(249, 249, 249);
-  color: rgb(249, 249, 249);
-`;
-
-const AddList = styled.div`
-  margin-right: 16px;
-  height: 44px;
-  width: 44px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  border: 2px solid white;
-  cursor: pointer;
-  span {
-    background-color: rgb(249, 249, 249);
-    display: inline-block;
-    &:first-child {
-      height: 2px;
-      transform: translate(1px, 0px) rotate(0deg);
-      width: 16px;
-    }
-    &:nth-child(2) {
-      height: 16px;
-      transform: translateX(-8px) rotate(0deg);
-      width: 2px;
-    }
-  }
-`;  
-
-const Description = styled.div`
-  line-height: 1.4;
-  font-size: 20px;
-  padding: 16px 0px;
-  color: rgb(249, 249, 249);
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-const GroupWatch = styled.div`
-  height: 44px;
-  width: 44px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  background: white;
-  div {
-    height: 40px;
-    width: 40px;
-    background: rgb(0, 0, 0);
-    border-radius: 50%;
-    img {
-      width: 100%;
-    }
-  }
-`;
-
-const SubTitle = styled.div`
-  color: rgb(249, 249, 249);
-  font-size: 15px;
-  min-height: 20px;
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
-`;
+  
+ background-color:white 
+box-shadow
